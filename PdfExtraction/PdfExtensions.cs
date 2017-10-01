@@ -66,11 +66,11 @@ namespace VuongIdeas.PdfExtraction
         }
         private static void HandleItem(PdfDocument document, PdfItem item, HashSet<int> seenObjectNumbers, StringBuilder target)
         {
-            if (item.GetType() == typeof(PdfObject)) HandleObject(document, (PdfObject)item, seenObjectNumbers, target);
-            else if (item.GetType() == typeof(PdfReference)) HandleReference(document, (PdfReference)item, seenObjectNumbers, target);
-            else if (item.GetType() == typeof(PdfString)) HandleString((PdfString)item, target);
-            else if (item.GetType() == typeof(PdfLiteral)) HandleLiteral((PdfLiteral)item, target);
-            else if (item.GetType() == typeof(PdfName)) HandleName((PdfName)item, target);
+            if (item is PdfObject) HandleObject(document, (PdfObject)item, seenObjectNumbers, target);
+            else if (item is PdfReference) HandleReference(document, (PdfReference)item, seenObjectNumbers, target);
+            else if (item is PdfString) HandleString((PdfString)item, target);
+            else if (item is PdfLiteral) HandleLiteral((PdfLiteral)item, target);
+            else if (item is PdfName) HandleName((PdfName)item, target);
             //else if (item.GetType() == typeof(PdfInteger)) HandleInteger((PdfInteger)item, target);
             //else if (item.GetType() == typeof(PdfReal)) HandleReal((PdfReal)item, target);
             //else if (item.GetType() == typeof(PdfBoolean)) HandleBoolean((PdfBoolean)item, target);
