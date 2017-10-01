@@ -69,7 +69,9 @@
     <Content Include="Resources\Appx B1 -Sample Collection Photos.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="Resources\pdf.pdf" />
+    <None Include="Resources\pdf.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PdfExtraction\PdfExtraction.csproj">
