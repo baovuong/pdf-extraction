@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace VuongIdeas.PdfExtraction
@@ -29,14 +30,22 @@ namespace VuongIdeas.PdfExtraction
             {
                 HandleObject(document, o, seenObjectNumbers, result);
             }
+            var textObjectRegex = new Regex("BT(.*?)ET", RegexOptions.Singleline);
+
+            var textObjectStrings = textObjectRegex.Matches(result.ToString())
+                .Cast<Match>()
+                .Select(m => m.Groups[1].Value);
+
+            var processed = textObjectStrings.Select(s => ProcessTextObject(s));
+
             return result.ToString();
         }
 
         private static void HandleObject(PdfDocument document, PdfObject value, HashSet<int> seenObjectNumbers, StringBuilder result)
         {
-            if (value.GetType() == typeof(PdfDictionary))
+            if (value is PdfDictionary)
                 HandleDictionary(document, (PdfDictionary)value, seenObjectNumbers, result);
-            else if (value.GetType() == typeof(PdfArray))
+            else if (value is PdfArray)
                 HandleArray(document, (PdfArray)value, seenObjectNumbers, result);
         }
 
@@ -45,7 +54,9 @@ namespace VuongIdeas.PdfExtraction
             
             if (value.Stream != null)
             {
-
+                // parse through the stream
+                target.Append(Encoding.Default.GetString(value.Stream.UnfilteredValue));
+                
             }
             else
             {
@@ -102,6 +113,55 @@ namespace VuongIdeas.PdfExtraction
                 seenObjectNumbers.Add(reference.ObjectNumber);
                 HandleObject(document, reference.Value, seenObjectNumbers, target);
             }
+        }
+
+        private static string ProcessTextObject(string input)
+        {
+            var result = new StringBuilder();
+            var tokens = input.Split(null).Where(t => !string.IsNullOrEmpty(t));
+            var parameters = new Stack<string>();
+            foreach (var token in tokens)
+            {
+                switch (token.ToUpper())
+                {
+                    case "TJ":
+                        result.Append(ShowTextObjectProcessing(parameters));
+                        break;
+                    case "TF":
+                        // font things
+                        // TODO implement this
+                        EmptyTextObjectProcessing(parameters);
+                        break;
+                    case "TD":
+                    case "TM":
+                    case "GS":
+                    case "G":
+                        EmptyTextObjectProcessing(parameters);
+                        break;
+                    default:
+                        parameters.Push(token);
+                        break;
+                }
+            }
+            return null;
+        }
+
+        private static void EmptyTextObjectProcessing(Stack<string> parameters)
+        {
+            // empty the stack
+            parameters.Clear();
+        }
+
+        private static string ShowTextObjectProcessing(Stack<string> parameters)
+        {
+            var result = new StringBuilder();
+            while (parameters.Any())
+            {
+                result.Insert(0, parameters.Pop());
+            }
+
+            // Tj
+            return result.ToString();
         }
     }
 }

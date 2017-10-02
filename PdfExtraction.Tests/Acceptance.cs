@@ -12,9 +12,9 @@ namespace PdfExtraction.Tests
     [TestFixture]
     public class Acceptance
     {
-
         [Test] public void PdfValidation1() => PdfValidationTemplate("pdf-sample.pdf", "Adobe");
-        [Test] public void PdfValidation2() => PdfValidationTemplate("", "");
+        [Test] public void PdfValidation2() => PdfValidationTemplate("PDF- test.pdf", "Test File");
+        [Test] public void PdfValidation3() => PdfValidationTemplate("pdf.pdf", "The pdf995 suite of products");
 
         public void PdfValidationTemplate(string path, string text)
         {
