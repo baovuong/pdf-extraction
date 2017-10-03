@@ -7,7 +7,7 @@
     <ProjectGuid>{7D57C03A-5748-4714-9B11-0FCE531A842A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PdfExtraction</RootNamespace>
+    <RootNamespace>VuongIdeas.PdfExtraction</RootNamespace>
     <AssemblyName>PdfExtraction</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CharacterMap.cs" />
     <Compile Include="PdfExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

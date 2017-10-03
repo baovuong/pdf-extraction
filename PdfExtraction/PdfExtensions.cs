@@ -30,15 +30,10 @@ namespace VuongIdeas.PdfExtraction
             {
                 HandleObject(document, o, seenObjectNumbers, result);
             }
-            var textObjectRegex = new Regex("BT(.*?)ET", RegexOptions.Singleline);
-
-            var textObjectStrings = textObjectRegex.Matches(result.ToString())
+            return Regex.Matches(result.ToString(), "BT(.*?)ET", RegexOptions.Singleline)
                 .Cast<Match>()
-                .Select(m => m.Groups[1].Value);
-
-            var processed = textObjectStrings.Select(s => ProcessTextObject(s));
-
-            return result.ToString();
+                .Select(m => ProcessTextObject(document, m.Groups[1].Value))
+                .Aggregate((a,b) => a + b);
         }
 
         private static void HandleObject(PdfDocument document, PdfObject value, HashSet<int> seenObjectNumbers, StringBuilder result)
@@ -115,53 +110,135 @@ namespace VuongIdeas.PdfExtraction
             }
         }
 
-        private static string ProcessTextObject(string input)
+        private static string ProcessTextObject(PdfDocument document, string input)
         {
+            var fonts = document.Pages.Cast<PdfPage>()
+                .SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
+                .Select(i => CharacterMapFromPdfItem(i.Item2));
             var result = new StringBuilder();
-            var tokens = input.Split(null).Where(t => !string.IsNullOrEmpty(t));
-            var parameters = new Stack<string>();
-            foreach (var token in tokens)
-            {
-                switch (token.ToUpper())
+            var lines = input
+                .Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrEmpty(l));
+
+            foreach (var line in lines) {
+                var op = line.Substring(Math.Max(0, line.Length - 2)).ToUpper();
+                // check code
+                if (op.Contains("TJ"))
                 {
-                    case "TJ":
-                        result.Append(ShowTextObjectProcessing(parameters));
-                        break;
-                    case "TF":
-                        // font things
-                        // TODO implement this
-                        EmptyTextObjectProcessing(parameters);
-                        break;
-                    case "TD":
-                    case "TM":
-                    case "GS":
-                    case "G":
-                        EmptyTextObjectProcessing(parameters);
-                        break;
-                    default:
-                        parameters.Push(token);
-                        break;
+                    result.Append(ShowTextObjectProcessing(line, fonts));
+                }
+                else if (op.Contains("TF"))
+                {
+
+                }
+                else if (op.Contains("'"))
+                {
+                    result.Append(ShowTextObjectProcessing(line, fonts));
                 }
             }
-            return null;
+            return result.ToString();
+        }
+        private static string ShowTextObjectProcessing(string line, IEnumerable<CharacterMap> mappings)
+        {
+            // Tj
+            return Regex.Matches(line, "[(](.*?)[)]")
+                .Cast<Match>()
+                .Select(m => m.Groups[1].Value)
+                .Aggregate((a, b) => a + b);
         }
 
-        private static void EmptyTextObjectProcessing(Stack<string> parameters)
+        private static IEnumerable<Tuple<string, PdfItem>> FindObjects(string[] objectHierarchy, PdfItem startingObject, bool followHierarchy)
         {
-            // empty the stack
-            parameters.Clear();
+            var results = new List<Tuple<string, PdfItem>>();
+            FindObjects(objectHierarchy, startingObject, followHierarchy, ref results, 0);
+            return results;
         }
-
-        private static string ShowTextObjectProcessing(Stack<string> parameters)
+        private static void FindObjects(string[] objectHierarchy, PdfItem startingObject, bool followHierarchy, ref List<Tuple<string, PdfItem>> results, int Level)
         {
-            var result = new StringBuilder();
-            while (parameters.Any())
+            PdfName[] keyNames = ((PdfDictionary)startingObject).Elements.KeyNames;
+            foreach (PdfName keyName in keyNames)
             {
-                result.Insert(0, parameters.Pop());
+                bool matchFound = false;
+                if (!followHierarchy)
+                {
+                    // We need to check all items for a match, not just the top one
+                    for (int i = 0; i < objectHierarchy.Length; i++)
+                    {
+                        if (keyName.Value == objectHierarchy[i] ||
+                            (objectHierarchy[i].Contains("*") &&
+                                (keyName.Value.StartsWith(objectHierarchy[i].Substring(0, objectHierarchy[i].IndexOf("*") - 1)) &&
+                                keyName.Value.EndsWith(objectHierarchy[i].Substring(objectHierarchy[i].IndexOf("*") + 1)))))
+                        {
+                            matchFound = true;
+                        }
+                    }
+                }
+                else
+                {
+                    // Check the item in the hierarchy at this level for a match
+                    if (Level < objectHierarchy.Length && (keyName.Value == objectHierarchy[Level] ||
+                        (objectHierarchy[Level].Contains("*") &&
+                                (keyName.Value.StartsWith(objectHierarchy[Level].Substring(0, objectHierarchy[Level].IndexOf("*") - 1)) &&
+                                keyName.Value.EndsWith(objectHierarchy[Level].Substring(objectHierarchy[Level].IndexOf("*") + 1))))))
+                    {
+                        matchFound = true;
+                    }
+                }
+
+                if (matchFound)
+                {
+                    PdfItem item = ((PdfDictionary)startingObject).Elements[keyName];
+                    if (item != null && item is PdfReference)
+                    {
+                        item = ((PdfReference)item).Value;
+                    }
+
+                    if (Level == objectHierarchy.Length - 1)
+                    {
+                        // We are at the end of the hierarchy, so this is the target
+                        results.Add(Tuple.Create(keyName.Value, item));
+                    }
+                    else if (!followHierarchy)
+                    {
+                        // We are returning every matching object so add it
+                        results.Add(Tuple.Create(keyName.Value, item));
+                    }
+
+                    // Call back to this function to search lower levels
+                    Level++;
+                    FindObjects(objectHierarchy, item, followHierarchy, ref results, Level);
+                    Level--;
+                }
+            }
+            Level--;
+        }
+
+        private static CharacterMap CharacterMapFromPdfItem(PdfItem item)
+        {
+            var dictionary = (PdfDictionary)item;
+            if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
+            {
+                return null;
             }
 
-            // Tj
-            return result.ToString();
+            var cmapItem = dictionary.Elements["/ToUnicode"];
+            if (cmapItem != null && cmapItem is PdfReference)
+            {
+                cmapItem = ((PdfReference)cmapItem).Value;
+            }
+
+            var fontName = "/F" + 0;
+
+            var cmap = ((PdfDictionary)cmapItem).Stream.ToString();
+            
+
+            return new CharacterMap
+            {
+                Name = fontName,
+
+            };
+
         }
     }
 }
