@@ -15,6 +15,8 @@ namespace PdfExtraction.Tests
         [Test] public void PdfValidation1() => PdfValidationTemplate("pdf-sample.pdf", "Adobe");
         [Test] public void PdfValidation2() => PdfValidationTemplate("PDF- test.pdf", "Test File");
         [Test] public void PdfValidation3() => PdfValidationTemplate("pdf.pdf", "The pdf995 suite of products");
+        [Test] public void PdfValidation4() => PdfValidationTemplate("sampleTypewriter.pdf", "This is a sample PDF document");
+        [Test] public void PdfValidation5() => PdfValidationTemplate("sampleTypewriter.pdf", "This is written using the typewriter tool");
 
         public void PdfValidationTemplate(string path, string text)
         {

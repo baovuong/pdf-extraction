@@ -30,9 +30,12 @@ namespace VuongIdeas.PdfExtraction
             {
                 HandleObject(document, o, seenObjectNumbers, result);
             }
+			var fonts = document.Pages.Cast<PdfPage>()
+            	.SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
+            	.Select(i => CharacterMapFromPdfItem(i.Item1, i.Item2));
             return Regex.Matches(result.ToString(), "BT(.*?)ET", RegexOptions.Singleline)
                 .Cast<Match>()
-                .Select(m => ProcessTextObject(document, m.Groups[1].Value))
+                .Select(m => ProcessTextObject(document, fonts, m.Groups[1].Value))
                 .Aggregate((a,b) => a + b);
         }
 
@@ -110,11 +113,9 @@ namespace VuongIdeas.PdfExtraction
             }
         }
 
-        private static string ProcessTextObject(PdfDocument document, string input)
+        private static string ProcessTextObject(PdfDocument document, IEnumerable<CharacterMap> fontMappings, string input)
         {
-            var fonts = document.Pages.Cast<PdfPage>()
-                .SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
-                .Select(i => CharacterMapFromPdfItem(i.Item2));
+
             var result = new StringBuilder();
             var lines = input
                 .Split('\n')
@@ -126,7 +127,7 @@ namespace VuongIdeas.PdfExtraction
                 // check code
                 if (op.Contains("TJ"))
                 {
-                    result.Append(ShowTextObjectProcessing(line, fonts));
+                    result.Append(ShowTextObjectProcessing(line, fontMappings));
                 }
                 else if (op.Contains("TF"))
                 {
@@ -134,7 +135,7 @@ namespace VuongIdeas.PdfExtraction
                 }
                 else if (op.Contains("'"))
                 {
-                    result.Append(ShowTextObjectProcessing(line, fonts));
+                    result.Append(ShowTextObjectProcessing(line, fontMappings));
                 }
             }
             return result.ToString();
@@ -214,7 +215,7 @@ namespace VuongIdeas.PdfExtraction
             Level--;
         }
 
-        private static CharacterMap CharacterMapFromPdfItem(PdfItem item)
+        private static CharacterMap CharacterMapFromPdfItem(string name, PdfItem item)
         {
             var dictionary = (PdfDictionary)item;
             if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
@@ -228,14 +229,12 @@ namespace VuongIdeas.PdfExtraction
                 cmapItem = ((PdfReference)cmapItem).Value;
             }
 
-            var fontName = "/F" + 0;
-
             var cmap = ((PdfDictionary)cmapItem).Stream.ToString();
             
 
             return new CharacterMap
             {
-                Name = fontName,
+                Name = name,
 
             };
 
