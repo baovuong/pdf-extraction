@@ -25,6 +25,7 @@ namespace VuongIdeas.PdfExtraction
         {
             var seenObjectNumbers = new HashSet<int>();
             var result = new StringBuilder();
+
             var objects = document.Internals.GetAllObjects();
             foreach (var o in objects)
             {
@@ -115,6 +116,21 @@ namespace VuongIdeas.PdfExtraction
 
         private static string ProcessTextObject(PdfDocument document, IEnumerable<CharacterMap> fontMappings, string input)
         {
+            // this will have to be stack based, but I need to prepare it for the stack
+            //input = new string[]
+            //{
+            //    "Tj|J",
+            //    "Tm|M",
+            //    "Tf|F"
+            //}.Aggregate((a, b) => Regex.Replace(a, b, " " + b.Substring(0, b.IndexOf('|'))));
+
+
+            input = Regex.Replace(input, "(?<=[^\\s-])Tj|J", " Tj ");
+            input = Regex.Replace(input, "(?<=[^\\s-])Tm|M", " Tm ");
+            input = Regex.Replace(input, "(?<=[^\\s-])Tf|F", " Tf ");
+            input = input.Replace(")'", ") '");
+
+            var parameters = new Stack<string>();
 
             var result = new StringBuilder();
             var lines = input
@@ -143,10 +159,11 @@ namespace VuongIdeas.PdfExtraction
         private static string ShowTextObjectProcessing(string line, IEnumerable<CharacterMap> mappings)
         {
             // Tj
+            var test = mappings.FirstOrDefault()?.Convert("hello");
             return Regex.Matches(line, "[(](.*?)[)]")
                 .Cast<Match>()
                 .Select(m => m.Groups[1].Value)
-                .Aggregate((a, b) => a + b);
+                .Aggregate((a, b) => a + b + test);
         }
 
         private static IEnumerable<Tuple<string, PdfItem>> FindObjects(string[] objectHierarchy, PdfItem startingObject, bool followHierarchy)
