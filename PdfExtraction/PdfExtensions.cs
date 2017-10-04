@@ -32,7 +32,7 @@ namespace VuongIdeas.PdfExtraction
             }
 			var fonts = document.Pages.Cast<PdfPage>()
             	.SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
-            	.Select(i => CharacterMapFromPdfItem(i.Item1, i.Item2));
+                .Select(i => new CharacterMap(i.Item1, i.Item2));
             return Regex.Matches(result.ToString(), "BT(.*?)ET", RegexOptions.Singleline)
                 .Cast<Match>()
                 .Select(m => ProcessTextObject(document, fonts, m.Groups[1].Value))
@@ -213,31 +213,6 @@ namespace VuongIdeas.PdfExtraction
                 }
             }
             Level--;
-        }
-
-        private static CharacterMap CharacterMapFromPdfItem(string name, PdfItem item)
-        {
-            var dictionary = (PdfDictionary)item;
-            if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
-            {
-                return null;
-            }
-
-            var cmapItem = dictionary.Elements["/ToUnicode"];
-            if (cmapItem != null && cmapItem is PdfReference)
-            {
-                cmapItem = ((PdfReference)cmapItem).Value;
-            }
-
-            var cmap = ((PdfDictionary)cmapItem).Stream.ToString();
-            
-
-            return new CharacterMap
-            {
-                Name = name,
-
-            };
-
         }
     }
 }
