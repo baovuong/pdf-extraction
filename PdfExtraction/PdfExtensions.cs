@@ -117,13 +117,6 @@ namespace VuongIdeas.PdfExtraction
         private static string ProcessTextObject(PdfDocument document, IEnumerable<CharacterMap> fontMappings, string input)
         {
             // this will have to be stack based, but I need to prepare it for the stack
-            //input = new string[]
-            //{
-            //    "Tj|J",
-            //    "Tm|M",
-            //    "Tf|F"
-            //}.Aggregate((a, b) => Regex.Replace(a, b, " " + b.Substring(0, b.IndexOf('|'))));
-
 
             input = Regex.Replace(input, "(?<=[^\\s-])Tj|J", " Tj ");
             input = Regex.Replace(input, "(?<=[^\\s-])Tm|M", " Tm ");
@@ -131,40 +124,50 @@ namespace VuongIdeas.PdfExtraction
             input = input.Replace(")'", ") '");
 
             var parameters = new Stack<string>();
-
             var result = new StringBuilder();
-            var lines = input
-                .Split('\n')
-                .Select(l => l.Trim())
-                .Where(l => !string.IsNullOrEmpty(l));
-
-            foreach (var line in lines) {
-                var op = line.Substring(Math.Max(0, line.Length - 2)).ToUpper();
-                // check code
-                if (op.Contains("TJ"))
+            var tokens = input.Split(null);
+            string mappingIndex = null;
+            // here we go baby
+            foreach (var t in tokens)
+            {
+                switch (t)
                 {
-                    result.Append(ShowTextObjectProcessing(line, fontMappings));
-                }
-                else if (op.Contains("TF"))
-                {
-
-                }
-                else if (op.Contains("'"))
-                {
-                    result.Append(ShowTextObjectProcessing(line, fontMappings));
+                    case "'":
+                    case "Tj":
+                        result.Append(ShowTextOp(parameters, null));
+                        break;
+                    case "Tf":
+                        // font things
+                        mappingIndex = FontTextOp(parameters);
+                        break;
+                    case "Tm":
+                        IgnoreTextOp(parameters);
+                        break;
+                    default:
+                        break;
                 }
             }
+
             return result.ToString();
         }
-        private static string ShowTextObjectProcessing(string line, IEnumerable<CharacterMap> mappings)
+        private static string ShowTextOp(Stack<string> parameters, CharacterMap mapping)
         {
-            // Tj
-            var test = mappings.FirstOrDefault()?.Convert("hello");
-            return Regex.Matches(line, "[(](.*?)[)]")
-                .Cast<Match>()
-                .Select(m => m.Groups[1].Value)
-                .Aggregate((a, b) => a + b + test);
+            // TODO work on this
+            // check for the following:
+            // * literal strings. (ex. (hello) )
+            // * hex strings. (ex. (<44> <54> <67>)
+            // * identity-h (why) (ex. <0001000500400F40>)
+
+            return null;
         }
+
+        private static string FontTextOp(Stack<string> parameters)
+        {
+            // TODO work on this
+            return null;
+        }
+
+        private static void IgnoreTextOp(Stack<string> parameters) => parameters.Clear();
 
         private static IEnumerable<Tuple<string, PdfItem>> FindObjects(string[] objectHierarchy, PdfItem startingObject, bool followHierarchy)
         {
