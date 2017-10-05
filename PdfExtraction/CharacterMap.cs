@@ -99,8 +99,16 @@ namespace VuongIdeas.PdfExtraction
             }
 
             // ok, bf range
+            var result = BfRange
+                .Where(_ => FromHex(index) >= FromHex(_.Item1) && FromHex(index) <= FromHex(_.Item2))
+                .Select(_ => new { Beginning = FromHex(_.Item1), Values = _.Item3.ToList() })
+                .Select(_ => _.Values[FromHex(index)-_.Beginning])
+                .FirstOrDefault();
+            if (!string.IsNullOrEmpty(result)) return result;
 
-            return null; 
+            // check individual values
+            string r;
+            return BfChar.TryGetValue(index, out r) ? r : null;
         }
 
         public string this[string i]
@@ -110,6 +118,8 @@ namespace VuongIdeas.PdfExtraction
 
         public string Convert(string input)
         {
+            // each entry should be 2 bytes (4 digits)
+
             return null;
         }
 
