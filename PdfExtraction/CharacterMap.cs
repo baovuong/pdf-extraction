@@ -17,26 +17,26 @@ namespace VuongIdeas.PdfExtraction
         public IEnumerable<Tuple<string, string, IEnumerable<string>>> BfRange { get; set; }
         public Dictionary<string, string> BfChar { get; set; }
 
-        public CharacterMap() 
+        public CharacterMap()
         {
         }
 
         public CharacterMap(string name, PdfItem item)
         {
             Name = name;
-			var dictionary = (PdfDictionary)item;
-			if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
-			{
+            var dictionary = (PdfDictionary)item;
+            if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
+            {
                 return;
-			}
+            }
 
-			var cmapItem = dictionary.Elements["/ToUnicode"];
-			if (cmapItem != null && cmapItem is PdfReference)
-			{
-				cmapItem = ((PdfReference)cmapItem).Value;
-			}
+            var cmapItem = dictionary.Elements["/ToUnicode"];
+            if (cmapItem != null && cmapItem is PdfReference)
+            {
+                cmapItem = ((PdfReference)cmapItem).Value;
+            }
 
-			var cmap = ((PdfDictionary)cmapItem).Stream.ToString();
+            var cmap = ((PdfDictionary)cmapItem).Stream.ToString();
 
             // space range
             var spaceRangeMatch = Regex.Match(cmap, "begincodespacerange\\s*<(\\w+)>\\s*<(\\w+)>\\s*endcodespacerange", RegexOptions.Singleline);
@@ -59,7 +59,7 @@ namespace VuongIdeas.PdfExtraction
                     if (match.Success)
                     {
                         return Tuple.Create(
-                            match.Groups[1].Value, 
+                            match.Groups[1].Value,
                             match.Groups[2].Value,
                             Regex.Matches(match.Groups[3].Value, "<(\\w+)>")
                             .Cast<Match>()
@@ -88,7 +88,7 @@ namespace VuongIdeas.PdfExtraction
 
         }
 
-        public string Get(string index) 
+        public string Get(string index)
         {
             // TODO work on this 
 
@@ -103,19 +103,19 @@ namespace VuongIdeas.PdfExtraction
             var result = BfRange?
                 .Where(_ => FromHex(index) >= FromHex(_.Item1) && FromHex(index) <= FromHex(_.Item2))
                 .Select(_ => new { Beginning = FromHex(_.Item1), Values = _.Item3 })
-                .Select(_ => _.Values.Count() == 1 
+                .Select(_ => _.Values.Count() == 1
                     ? ((FromHex(index) - _.Beginning) + FromHex(_.Values.First())).ToString("X4")
-                    : FromHex(index) +  _.Values.ElementAt(FromHex(index)-_.Beginning))
+                    : FromHex(index) + _.Values.ElementAt(FromHex(index) - _.Beginning))
                 .FirstOrDefault();
             if (!string.IsNullOrEmpty(result)) return "" + System.Convert.ToChar(FromHex(result));
 
             // check individual values
             string r;
-            return BfChar != null && BfChar.TryGetValue(index, out r) 
+            return BfChar != null && BfChar.TryGetValue(index.ToUpper(), out r)
                 ? Regex.Matches(r, ".{4}")
                     .Cast<Match>()
-                    .Select(m => m.Value)
-                    .Aggregate((a, b) => a + System.Convert.ToChar(FromHex(b))) : null;
+                    .Select(m => System.Convert.ToChar(FromHex(m.Value)).ToString())
+                    .Aggregate((a, b) => a + b) : null;
         }
 
         public string this[string i]
