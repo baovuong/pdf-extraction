@@ -31,13 +31,13 @@ namespace VuongIdeas.PdfExtraction
             {
                 HandleObject(document, o, seenObjectNumbers, result);
             }
-			var fonts = document.Pages.Cast<PdfPage>()
-            	.SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
+            var fonts = document.Pages.Cast<PdfPage>()
+                .SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
                 .Select(i => new CharacterMap(i.Item1, i.Item2));
             return Regex.Matches(result.ToString(), "BT(.*?)ET", RegexOptions.Singleline)
                 .Cast<Match>()
                 .Select(m => ProcessTextObject(document, fonts, m.Groups[1].Value))
-                .Aggregate((a,b) => a + b);
+                .Aggregate((a, b) => a + b);
         }
 
         private static void HandleObject(PdfDocument document, PdfObject value, HashSet<int> seenObjectNumbers, StringBuilder result)
@@ -50,12 +50,12 @@ namespace VuongIdeas.PdfExtraction
 
         private static void HandleDictionary(PdfDocument document, PdfDictionary value, HashSet<int> seenObjectNumbers, StringBuilder target)
         {
-            
+
             if (value.Stream != null)
             {
                 // parse through the stream
                 target.Append(Encoding.Default.GetString(value.Stream.UnfilteredValue));
-                
+
             }
             else
             {
@@ -66,7 +66,7 @@ namespace VuongIdeas.PdfExtraction
                 }
             }
         }
-        
+
         private static void HandleArray(PdfDocument document, PdfArray array, HashSet<int> seenObjectNumbers, StringBuilder target)
         {
             foreach (var element in array)
@@ -166,8 +166,16 @@ namespace VuongIdeas.PdfExtraction
 
         private static string SelectFontOp(Stack<string> parameters)
         {
-            // TODO work on this
-            return null;
+            string result = parameters.Pop();
+            while (parameters.Any())
+            {
+                var curr = parameters.Pop();
+                if (!string.IsNullOrEmpty(curr))
+                {
+                    result = curr;
+                }
+            }
+            return result;
         }
 
         private static void IgnoreTextOp(Stack<string> parameters) => parameters.Clear();
