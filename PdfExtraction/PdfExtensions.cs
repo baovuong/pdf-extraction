@@ -117,10 +117,9 @@ namespace VuongIdeas.PdfExtraction
         private static string ProcessTextObject(PdfDocument document, IEnumerable<CharacterMap> fontMappings, string input)
         {
             // this will have to be stack based, but I need to prepare it for the stack
-
-            input = Regex.Replace(input, "(?<=[^\\s-])Tj|J", " Tj ");
-            input = Regex.Replace(input, "(?<=[^\\s-])Tm|M", " Tm ");
-            input = Regex.Replace(input, "(?<=[^\\s-])Tf|F", " Tf ");
+            input = new string[] { "TJ", "Tj", "Tm", "Tf", "Td" }.
+                Aggregate(input, (a, b) => Regex.Replace(a, "(?<=[^\\s-])" + b, " " + b + " "));
+            
             input = input.Replace(")'", ") '");
             input = input.Replace(")\"", ") \"");
 
@@ -137,6 +136,9 @@ namespace VuongIdeas.PdfExtraction
                     case "\"":
                     case "Tj":
                         result.Append(ShowTextOp(parameters, fontMappings.Where(m => m.Name == mappingIndex).FirstOrDefault()));
+                        break;
+                    case "TJ":
+                        result.Append(ShowTextGlyphOp(parameters, fontMappings.Where(m => m.Name == mappingIndex).FirstOrDefault()));
                         break;
                     case "Tf":
                         // font things
@@ -158,7 +160,6 @@ namespace VuongIdeas.PdfExtraction
         }
         private static string ShowTextOp(Stack<string> parameters, CharacterMap mapping)
         {
-            // TODO work on this
             // check for the following:
             // * literal strings. (ex. (hello) )
             // * hex strings. (ex. (<44> <54> <67>)
@@ -169,7 +170,6 @@ namespace VuongIdeas.PdfExtraction
             {
                 input = input.Insert(0, " " + parameters.Pop());
             }
-
             // processing time
             var state = 0;
             var content = string.Empty;
@@ -194,6 +194,7 @@ namespace VuongIdeas.PdfExtraction
                             // literal string
                             result += content;
                             content = string.Empty;
+                            state = 0;
                         }
                         else
                         {
@@ -208,10 +209,15 @@ namespace VuongIdeas.PdfExtraction
                             if (content.Length % 4 == 0)
                             {
                                 // identity h
+                                result += mapping == null ? content : mapping.Convert(content);
+                            }
+                            else
+                            {
+                                // regular hex stuff
                             }
 
-
                             content = string.Empty;
+                            state = 0;
                         }
                         else
                         {
@@ -222,7 +228,81 @@ namespace VuongIdeas.PdfExtraction
                         break;
                 }
             }
+            return result;
+        }
 
+        private static string ShowTextGlyphOp(Stack<string> parameters, CharacterMap mapping)
+        {
+            // check for the following:
+            // * literal strings. (ex. (hello) )
+            // * hex strings. (ex. (<44> <54> <67>)
+            // * identity-h (why) (ex. <0001000500400F40>)
+            var result = string.Empty;
+            var input = string.Empty;
+            while (parameters.Any())
+            {
+                input = input.Insert(0, " " + parameters.Pop());
+            }
+            // processing time
+            var state = 0;
+            var content = string.Empty;
+            foreach (var c in input)
+            {
+                switch (state)
+                {
+                    case 0:
+                        if (c == '(')
+                        {
+                            state = 1;
+                        }
+                        else if (c == '<')
+                        {
+                            state = 2;
+                        }
+                        break;
+                    case 1:
+                        if (c == ')')
+                        {
+                            // process this
+                            // literal string
+                            result += mapping != null ? mapping.Convert(content
+                                .Select(_ => Convert.ToByte(_).ToString("X2"))
+                                .Aggregate((a, b) => a + b)) : content;
+                            content = string.Empty;
+                            state = 0;
+                        }
+                        else
+                        {
+                            content += c;
+                        }
+                        break;
+                    case 2:
+                        if (c == '>')
+                        {
+                            // process this hex stuff
+                            // check if identity h or just hex string
+                            if (content.Length % 4 == 0)
+                            {
+                                // identity h
+                                result += mapping == null ? content : mapping.Convert(content);
+                            }
+                            else
+                            {
+                                // regular hex stuff
+                            }
+
+                            content = string.Empty;
+                            state = 0;
+                        }
+                        else
+                        {
+                            content += c;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
             return result;
         }
 

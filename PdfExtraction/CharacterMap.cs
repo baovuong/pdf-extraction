@@ -90,28 +90,28 @@ namespace VuongIdeas.PdfExtraction
 
         public string Get(string index) 
         {
-            // TODO work on thising 
+            // TODO work on this 
 
             // check range first
             var indexValue = int.Parse(index, NumberStyles.HexNumber);
-            if (indexValue < FromHex(CodeSpaceRange.Item1) || indexValue > FromHex(CodeSpaceRange.Item2))
+            if (CodeSpaceRange == null || indexValue < FromHex(CodeSpaceRange.Item1) || indexValue > FromHex(CodeSpaceRange.Item2))
             {
                 return null;
             }
 
             // ok, bf range
-            var result = BfRange
+            var result = BfRange?
                 .Where(_ => FromHex(index) >= FromHex(_.Item1) && FromHex(index) <= FromHex(_.Item2))
                 .Select(_ => new { Beginning = FromHex(_.Item1), Values = _.Item3 })
                 .Select(_ => _.Values.Count() == 1 
                     ? ((FromHex(index) - _.Beginning) + FromHex(_.Values.First())).ToString("X4")
                     : FromHex(index) +  _.Values.ElementAt(FromHex(index)-_.Beginning))
                 .FirstOrDefault();
-            if (!string.IsNullOrEmpty(result)) return result;
+            if (!string.IsNullOrEmpty(result)) return "" + System.Convert.ToChar(FromHex(result));
 
             // check individual values
             string r;
-            return BfChar.TryGetValue(index, out r) 
+            return BfChar != null && BfChar.TryGetValue(index, out r) 
                 ? Regex.Matches(r, ".{4}")
                     .Cast<Match>()
                     .Select(m => m.Value)
@@ -131,12 +131,12 @@ namespace VuongIdeas.PdfExtraction
                 .Select(m => m.Value);
 
             // check length of each
-            if (entries.Where(e => e.Length < 4).Any())
-            {
-                // oops bad
-                return null;
-            }
-            return entries.Aggregate((a, b) => a + Get(b));
+            //if (entries.Where(e => e.Length < ).Any())
+            //{
+            //    // oops bad
+            //    return null;
+            //}
+            return entries.Select(_ => Get(_)).Aggregate((a, b) => a + b);
         }
 
         private int FromHex(string value) => int.Parse(value, NumberStyles.HexNumber);
