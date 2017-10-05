@@ -146,6 +146,7 @@ namespace VuongIdeas.PdfExtraction
                         IgnoreTextOp(parameters);
                         break;
                     default:
+                        parameters.Push(t);
                         break;
                 }
             }
