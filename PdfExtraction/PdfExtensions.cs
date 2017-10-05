@@ -34,7 +34,7 @@ namespace VuongIdeas.PdfExtraction
 			var fonts = document.Pages.Cast<PdfPage>()
             	.SelectMany(p => FindObjects(new string[] { "/Resources", "/Font", "/F*" }, p, true))
                 .Select(i => new CharacterMap(i.Item1, i.Item2));
-            return Regex.Matches(result.ToString(), "BT(.*?)ET", RegexOptions.Singleline)
+            return Regex.Matches(result.ToString(), "BT\\s(.*?)\\sET", RegexOptions.Singleline)
                 .Cast<Match>()
                 .Select(m => ProcessTextObject(document, fonts, m.Groups[1].Value))
                 .Aggregate((a,b) => a + b);
@@ -143,6 +143,9 @@ namespace VuongIdeas.PdfExtraction
                         mappingIndex = SelectFontOp(parameters);
                         break;
                     case "Tm":
+                    case "Td":
+                    case "G":
+                    case "Gs":
                         IgnoreTextOp(parameters);
                         break;
                     default:
@@ -160,8 +163,67 @@ namespace VuongIdeas.PdfExtraction
             // * literal strings. (ex. (hello) )
             // * hex strings. (ex. (<44> <54> <67>)
             // * identity-h (why) (ex. <0001000500400F40>)
+            var result = string.Empty;
+            var input = string.Empty;
+            while (parameters.Any())
+            {
+                input = input.Insert(0, " " + parameters.Pop());
+            }
 
-            return null;
+            // processing time
+            var state = 0;
+            var content = string.Empty;
+            foreach(var c in input)
+            {
+                switch (state)
+                {
+                    case 0:
+                        if (c == '(')
+                        {
+                            state = 1;
+                        }
+                        else if (c == '<')
+                        {
+                            state = 2;
+                        }
+                        break;
+                    case 1:
+                        if (c == ')')
+                        {
+                            // process this
+                            // literal string
+                            result += content;
+                            content = string.Empty;
+                        }
+                        else
+                        {
+                            content += c;
+                        }
+                        break;
+                    case 2:
+                        if (c == '>')
+                        {
+                            // process this hex stuff
+                            // check if identity h or just hex string
+                            if (content.Length % 4 == 0)
+                            {
+                                // identity h
+                            }
+
+
+                            content = string.Empty;
+                        }
+                        else
+                        {
+                            content += c;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return result;
         }
 
         private static string SelectFontOp(Stack<string> parameters)

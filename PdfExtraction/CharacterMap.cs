@@ -23,6 +23,7 @@ namespace VuongIdeas.PdfExtraction
 
         public CharacterMap(string name, PdfItem item)
         {
+            Name = name;
 			var dictionary = (PdfDictionary)item;
 			if (!dictionary.Elements.KeyNames.Select(n => n.Value).Contains("/ToUnicode"))
 			{
