@@ -122,6 +122,7 @@ namespace VuongIdeas.PdfExtraction
             input = Regex.Replace(input, "(?<=[^\\s-])Tm|M", " Tm ");
             input = Regex.Replace(input, "(?<=[^\\s-])Tf|F", " Tf ");
             input = input.Replace(")'", ") '");
+            input = input.Replace(")\"", ") \"");
 
             var parameters = new Stack<string>();
             var result = new StringBuilder();
@@ -133,12 +134,13 @@ namespace VuongIdeas.PdfExtraction
                 switch (t)
                 {
                     case "'":
+                    case "\"":
                     case "Tj":
-                        result.Append(ShowTextOp(parameters, null));
+                        result.Append(ShowTextOp(parameters, fontMappings.Where(m => m.Name == mappingIndex).FirstOrDefault()));
                         break;
                     case "Tf":
                         // font things
-                        mappingIndex = FontTextOp(parameters);
+                        mappingIndex = SelectFontOp(parameters);
                         break;
                     case "Tm":
                         IgnoreTextOp(parameters);
@@ -161,7 +163,7 @@ namespace VuongIdeas.PdfExtraction
             return null;
         }
 
-        private static string FontTextOp(Stack<string> parameters)
+        private static string SelectFontOp(Stack<string> parameters)
         {
             // TODO work on this
             return null;
