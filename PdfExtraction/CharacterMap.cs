@@ -101,14 +101,20 @@ namespace VuongIdeas.PdfExtraction
             // ok, bf range
             var result = BfRange
                 .Where(_ => FromHex(index) >= FromHex(_.Item1) && FromHex(index) <= FromHex(_.Item2))
-                .Select(_ => new { Beginning = FromHex(_.Item1), Values = _.Item3.ToList() })
-                .Select(_ => _.Values[FromHex(index)-_.Beginning])
+                .Select(_ => new { Beginning = FromHex(_.Item1), Values = _.Item3 })
+                .Select(_ => _.Values.Count() == 1 
+                    ? ((FromHex(index) - _.Beginning) + FromHex(_.Values.First())).ToString("X4")
+                    : FromHex(index) +  _.Values.ElementAt(FromHex(index)-_.Beginning))
                 .FirstOrDefault();
             if (!string.IsNullOrEmpty(result)) return result;
 
             // check individual values
             string r;
-            return BfChar.TryGetValue(index, out r) ? r : null;
+            return BfChar.TryGetValue(index, out r) 
+                ? Regex.Matches(r, ".{4}")
+                    .Cast<Match>()
+                    .Select(m => m.Value)
+                    .Aggregate((a, b) => a + System.Convert.ToChar(FromHex(b))) : null;
         }
 
         public string this[string i]
@@ -119,8 +125,17 @@ namespace VuongIdeas.PdfExtraction
         public string Convert(string input)
         {
             // each entry should be 2 bytes (4 digits)
+            var entries = Regex.Matches(input, ".{4}|.{1,3}")
+                .Cast<Match>()
+                .Select(m => m.Value);
 
-            return null;
+            // check length of each
+            if (entries.Where(e => e.Length < 4).Any())
+            {
+                // oops bad
+                return null;
+            }
+            return entries.Aggregate((a, b) => a + Get(b));
         }
 
         private int FromHex(string value) => int.Parse(value, NumberStyles.HexNumber);
