@@ -44,7 +44,9 @@ namespace VuongIdeas.PdfExtraction
                 CodeSpaceRange = Tuple.Create("0000", "FFFF");
             else
             {
-                CodeSpaceRange = Tuple.Create(spaceRangeMatch.Groups[1].Value, spaceRangeMatch.Groups[2].Value);
+                CodeSpaceRange = Tuple.Create(
+                    FromHex(spaceRangeMatch.Groups[1].Value).ToString("X4"), 
+                    FromHex(spaceRangeMatch.Groups[2].Value).ToString("X4"));
             }
 
             // bfrange
@@ -59,11 +61,11 @@ namespace VuongIdeas.PdfExtraction
                     if (match.Success)
                     {
                         return Tuple.Create(
-                            match.Groups[1].Value,
-                            match.Groups[2].Value,
+                            FromHex(match.Groups[1].Value).ToString("X4"),
+                            FromHex(match.Groups[2].Value).ToString("X4"),
                             Regex.Matches(match.Groups[3].Value, "<(\\w+)>")
                             .Cast<Match>()
-                            .Select(m => m.Groups[1].Value));
+                            .Select(m => FromHex(m.Groups[1].Value).ToString("X4")));
                     }
                     return null;
                 }).Where(t => t != null);
@@ -79,7 +81,9 @@ namespace VuongIdeas.PdfExtraction
                     var match = bfCharRowRegex.Match(r);
                     if (match.Success)
                     {
-                        return new KeyValuePair<string, string>(match.Groups[1].Value, match.Groups[2].Value);
+                        return new KeyValuePair<string, string>(
+                            FromHex(match.Groups[1].Value).ToString("X4"), 
+                            FromHex(match.Groups[2].Value).ToString("X4"));
                     }
                     return new KeyValuePair<string, string>(null, null);
                 }).Where(p => p.Key != null && p.Value != null).ToDictionary(p => p.Key, p => p.Value);
@@ -107,7 +111,7 @@ namespace VuongIdeas.PdfExtraction
                     ? ((FromHex(index) - _.Beginning) + FromHex(_.Values.First())).ToString("X4")
                     : FromHex(index) + _.Values.ElementAt(FromHex(index) - _.Beginning))
                 .FirstOrDefault();
-            if (!string.IsNullOrEmpty(result)) return "" + System.Convert.ToChar(FromHex(result));
+            if (!string.IsNullOrEmpty(result)) return System.Convert.ToChar(FromHex(result)).ToString();
 
             // check individual values
             string r;

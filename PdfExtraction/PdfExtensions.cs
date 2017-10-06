@@ -266,7 +266,7 @@ namespace VuongIdeas.PdfExtraction
                             // process this
                             // literal string
                             result += mapping != null ? mapping.Convert(content
-                                .Select(_ => Convert.ToByte(_).ToString("X2"))
+                                .Select(_ => Convert.ToByte(_).ToString("X4"))
                                 .Aggregate((a, b) => a + b)) : content;
                             content = string.Empty;
                             state = 0;
