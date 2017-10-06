@@ -257,7 +257,7 @@ namespace VuongIdeas.PdfExtraction
                         }
                         else if (c == '<')
                         {
-                            state = 2;
+                            state = 3;
                         }
                         break;
                     case 1:
