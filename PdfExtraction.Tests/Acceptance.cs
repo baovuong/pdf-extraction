@@ -20,7 +20,7 @@ namespace PdfExtraction.Tests
 
         public void PdfValidationTemplate(string path, string text)
         {
-            Assert.IsTrue(Path.Combine("Resources", path).ExtractText().Contains(text));
+            Assert.IsTrue(Path.Combine("Resources", path).ExtractText().Replace('\t',' ').Contains(text));
         }
 
 

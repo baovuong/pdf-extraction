@@ -271,12 +271,20 @@ namespace VuongIdeas.PdfExtraction
                             content = string.Empty;
                             state = 0;
                         }
+                        else if (c == '\\')
+                        {
+                            state = 2;
+                        }
                         else
                         {
                             content += c;
                         }
                         break;
                     case 2:
+                        content += c;
+                        state = 1;
+                        break;
+                    case 3:
                         if (c == '>')
                         {
                             // process this hex stuff
