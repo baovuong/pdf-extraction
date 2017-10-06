@@ -1,18 +1,16 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>$id$</id>
-    <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <id>VuongIdeas.PdfExtraction</id>
+    <version>0.1.0-alpha1</version>
+    <title>PdfExtraction</title>
+    <authors>bvuong</authors>
+    <owners>bvuong</owners>
+    <projectUrl>https://github.com/baovuong/pdf-extraction</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+    <description>simple tool to extract pdf data via PdfSharp</description>
+    <releaseNotes>Initial</releaseNotes>
     <copyright>Copyright 2017</copyright>
-    <tags>Tag1 Tag2</tags>
+    <tags>PDF</tags>
   </metadata>
 </package>
